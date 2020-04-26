@@ -13,10 +13,10 @@ library(parallel)
 findCPB = function(x, reference_cpb_table)
 {
   #print("in findCPB")
-  x = as.character(x)
-  #print(x)
+  #x = as.character(x)
+  print(x)
   cpb = CPScalc(x, reference = reference_cpb_table, draw = FALSE, silent = TRUE)[[1]]
-  #print(cpb)
+  print(cpb)
   temp_df = CPBtable(x, silent = TRUE)$CPBtable
   k = nrow(temp_df[!is.na(temp_df$cps),])
   #print(x)
@@ -27,9 +27,9 @@ findCPB = function(x, reference_cpb_table)
 
 number_of_cores = detectCores()
 clust = makeCluster(number_of_cores)
-coding_content = importFasta(fastaLocation = "/home/cidr/Downloads/softwares/CodonShuffle-master/coding_regions.fasta")
-cpb_table = CPBtable(coding_content, silent = TRUE)
-cpb_table = cpb_table$CPBtable
+coding_content = importFasta(fastaLocation = "/home/cidr/Downloads/softwares/CodonShuffle-master/coding_regions.fasta",sepSequences = TRUE)[[1]]
+cpb_table = CPBtable(coding_content, silent = TRUE)[[1]]
+#cpb_table = cpb_table$CPBtable
 #class(cpb_table$CPBtable)
 
 # library(ggplot2)
@@ -38,8 +38,8 @@ cpb_table = cpb_table$CPBtable
 # ggplot(codon_bias_scores_df, aes(x = cps))+geom_density()
 
 #replicates = readDNAStringSet(filepath = args[1])
-replicates = readDNAStringSet(filepath = "/home/cidr/Downloads/softwares/CodonShuffle-master/NC_045512.2_26245_26472_Severe_acute_respiratory_syndrome_coronavirus_2_isolate_Wuhan_Hu_1__complete_genome_dn231.fas")
-#print(replicates)
+replicates = importFasta(fastaLocation = args[1], sepSequences = TRUE)[[1]]
+print(replicates)
 #v = c(length = length(replicates))
 
 
@@ -55,7 +55,7 @@ res = (res - res[1])^2
 
 
 
-#res = sapply(replicates,findCPB, cpb_table)
+#res = sapply(as.vector(replicates),findCPB, cpb_table)
 
 # for(i in 1:length(replicates))
 # {
@@ -74,3 +74,4 @@ res = (res - res[1])^2
 # v = v^2
 # #hist(v)
 # res[3] == v[3]
+gc()
