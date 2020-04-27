@@ -29,6 +29,7 @@ from Bio import SeqIO
 #from ggplot import ggplot
 from subprocess import call
 from Bio.SeqRecord import SeqRecord
+import re
 
 # utils = importr("utils")
 # plyr = importr("plyr")
@@ -45,7 +46,8 @@ tt = {"TTT":"F|Phe","TTC":"F|Phe","TTA":"L|Leu","TTG":"L|Leu","TCT":"S|Ser","TCC
 #Following functions or their combinations produce randomized or scrambled nucleotide sequence from input sequence.
 #Amino-acid sequence of derived sequence is identical to the input sequence, but nucleotide composition (GC-, nucleotide, or dinucleotide content) may differ slightly for randomized sequences.
 
-def gc3(seq):#this function creates sequence with GC-content close to the GC-content of the input sequence, but counts of nucleotides may differ from input sequence.
+#this function creates sequence with GC-content close to the GC-content of the input sequence, but counts of nucleotides may differ from input sequence.
+def gc3(seq):
     gc=at=0
     for num in xrange(2,len(seq),3):#first calculating A+T and G+C of the input sequence in third codon position
         if seq[num]=='A'or seq[num]=='T':
@@ -101,8 +103,8 @@ def gc3(seq):#this function creates sequence with GC-content close to the GC-con
     seq=seq2
     return seq   
 
-
-def third_simple(seq):#this function creates scrambled sequence with the numbers of each nucleotide identical to the input sequence.
+#this function creates scrambled sequence with the numbers of each nucleotide identical to the input sequence.
+def third_simple(seq):
     Y=[]
     seq1=[]
     for num in xrange(2,len(seq),3):
@@ -163,7 +165,8 @@ def third_simple(seq):#this function creates scrambled sequence with the numbers
     seq=seq2        
     return seq
 
-def dn23(seq):#this function creates a randomized sequence, with dinucleotide frequences in codon position 2-3 close to those of the input sequence.
+#this function creates a randomized sequence, with dinucleotide frequences in codon position 2-3 close to those of the input sequence.
+def dn23(seq):
     aa=ag=ac=at=ga=gg=gc=gt=ca=cg=cc=ct=ta=tg=tc=tt=0
     for num in xrange(2,len(seq),3):#first calculating dinucleotide frequences in codon position 2-3 
         if seq[num-1]=='A':
@@ -1493,6 +1496,8 @@ def make_protein_record(nuc_record):
 # -*- coding: cp1251 -*-
 ##############################################################################################################
 #Input Data
+import time
+start = time.time()
 parser = argparse.ArgumentParser(description='CodonShuffle.')
 parser.add_argument('-i', nargs='?', help='Input Filename', required=True, dest="input_file_name")
 parser.add_argument('-s', choices=['dn23', 'dn31', 'dn231', 'n3'], nargs='?', help='Type of shuffle', default="dn23", dest="random_type")
@@ -1520,15 +1525,15 @@ for line in infile:
             if liter!='\n' and liter!='-' and liter!='~':
                 data[strain]+=liter
 infile.close()
-print("data = ")
-print(data)
+#print("data = ")
+#print(data)
 
 out_names=[]
-print("names_list = ")
-print(names_list)
+#print("names_list = ")
+#print(names_list)
 for strain in names_list:
-    print("in names_list loop line 1529")
-    print(names_list)
+    #print("in names_list loop line 1529")
+    #print(names_list)
     seq_name=''
     for liter in strain:
         if liter =='\\' or liter =='/' or liter ==' ' or liter =='-' or liter ==',' or liter=='|' or liter==':': # compatible file names
@@ -1653,6 +1658,9 @@ if 'CAI' in args.modules or 'all' in args.modules:
     print "Calculating CAI"
     cainame = seq_name[1:-1]+'_'+args.random_type+'.cai'
     call(["./lib/EMBOSS-6.6.0/emboss/cai", "-seqall="+filename, "-outfile="+cainame, "-cfile=Ehuman.cut"]) #Insert path before cai in this line (CAI)
+    print("******************** CAI output file genertaed****************************")
+    print("CAI file generated at : "+cainame)
+    print("******************** CAI output file genertaed****************************")    
     u_cols = ['a', 'sequence', 'b', 'cai']
     cai_table = pandas.read_csv(cainame, sep=' ', names=u_cols)
     cai_table = cai_table.drop('a', 1)
@@ -1663,9 +1671,10 @@ if 'CAI' in args.modules or 'all' in args.modules:
     cai_table_z_ls = (cai_table_wt_z_rep-cai_table_z)**2
 
     least_squares = least_squares.add(cai_table_z_ls, axis=0)
-    print("******************** least squares table****************************")
-    print(least_squares)
+    #print("******************** least squares table****************************")
+    #print(least_squares)
 #    final_table=final_table.append(cai_table['cai'])
+    
     final_table.insert(0, "Cai", cai_table['cai'])
     
     if args.graphics:
@@ -1684,15 +1693,26 @@ if 'CAI' in args.modules or 'all' in args.modules:
 if 'ENC' in args.modules or 'all' in args.modules:
     #  Run ENC and result table
     print "Calculating ENC"
-    call(["chips","-seqall",filename,"-snucleotide_seqall","-nosum", "-auto","Y","-outfile","gene_enc.txt"])
+    call(["chips","-seqall",filename,"-nosum", "-auto","Y","-outfile",filename+"_gene_enc.txt"])
+    #time.sleep(3)
     #call(["codonw", filename, "-enc", "-nomenu", "-nowarn", "-silent"]) #Insert path before codonw in this line (ENC)
-    enc_filename = "gene_enc.txt"
-    enc_table = pandas.read_csv(enc_filename, sep=' ',header=None)
-    enc_table = enc_table[[0,12]]
+    
+    enc_filename = filename+"_gene_enc.txt"
+    
+    enc_file_content = open(enc_filename,"r").readlines()
+    enc_file_content = [re.sub(' +Nc = ',',',i) for i in enc_file_content]
+    
+    enc_file_object = open(enc_filename,"w")
+    enc_file_object.writelines(enc_file_content)
+    enc_file_object.close()
+    print("******************** ENC output file genertaed****************************")
+    print("ENC output file generated at : "+enc_filename,)
+    print("******************** ENC output file genertaed****************************")
+    enc_table = pandas.read_csv(enc_filename, sep=',',header=None)
     #enc_table = enc_table.rename(columns={"id":0,"Nc":12})
     enc_table.columns=["seq_id","Nc"]
-    print(enc_table)
-    print(enc_table.columns)
+    #print(enc_table)
+    #print(enc_table.columns)
     enc_table.to_csv("./"+enc_filename, index = False)
     #enc_table = enc_table.drop('Unnamed: 2',1)
     enc_table_z =  ((enc_table['Nc'] - enc_table['Nc'].mean()) / enc_table['Nc'].std())
@@ -1701,9 +1721,9 @@ if 'ENC' in args.modules or 'all' in args.modules:
     enc_table_z_ls = (enc_table_wt_z_rep-enc_table_z)**2
     
     least_squares = least_squares.add(enc_table_z_ls, axis=0)
-    print("******************** least squares table****************************")
-    print(least_squares)
-    print("******************** least squares table****************************")
+    #print("******************** least squares table****************************")
+    #print(least_squares)
+    #print("******************** least squares table****************************")
 #    final_table=final_table.append(enc_table['Nc'])
     final_table.insert(0, "ENC", enc_table['Nc'])
     
@@ -1716,19 +1736,25 @@ if 'ENC' in args.modules or 'all' in args.modules:
         print("END generating graphics for ENC")
         #enc_graph = ggplot(enc_table, aes('Nc'))+geom_density() +labs("ENC","Frequency")+ geom_vline(xintercept = [enc_table['Nc'].iloc[0]] , colour="red", linetype = "dashed") +ggtitle(seq_name[1:-1]+'_'+args.random_type+' (ENC)') #Get the name of the script
         #ggsave(enc_graph, enc_graphname)
-
+        
+#*****************************************************************************
+#WORKING
+#*****************************************************************************
 
 if 'VFOLD' in args.modules or 'all' in args.modules:
 #Read FOLD (minimum free energy) table
     print "Calculating VFOLD"
     foldname = seq_name[1:-1]+'_'+args.random_type+'.fold'
-    print(foldname)
+    #print(foldname)
     mfename = seq_name[1:-1]+'_'+args.random_type+'.mfe'
-    print(mfename)
-    print(filename)
+    #print(mfename)
+    #print(filename)
     i = open(filename, "r")
     o = open(foldname, "w")
     call(["RNAfold", "--noPS"], stdin=i, stdout=o) #Insert path before RNAfold in this line (MFOLD)
+    print("******************** VFOLD output file genertaed****************************")
+    print("VFOLD file generated at : "+foldname)
+    print("******************** VFOLD output file genertaed****************************")
     print("exiting VFOLD")
     i.close
     o.close
@@ -1744,25 +1770,25 @@ if 'VFOLD' in args.modules or 'all' in args.modules:
     #fold_tb = open(foldname, "r").read().split()
     fold_tb = open(foldname, "r").readlines()
     total_lines = len(fold_tb)
-    print(fold_tb)
-    print("total lines ")
-    print(total_lines)
-    print(type(fold_tb))
-    print("fold_tb")
-    print(fold_tb[0])
-    print(fold_tb[1])
-    print(fold_tb[2])
-    print(fold_tb[3])
-    print(fold_tb[4])
-    print(fold_tb[5])
+#    print(fold_tb)
+#    print("total lines ")
+#    print(total_lines)
+#    print(type(fold_tb))
+#    print("fold_tb")
+#    print(fold_tb[0])
+#    print(fold_tb[1])
+#    print(fold_tb[2])
+#    print(fold_tb[3])
+#    print(fold_tb[4])
+#    print(fold_tb[5])
     fold_tb= fold_tb[2::3]
-    print(len(fold_tb))
+    #print(len(fold_tb))
     #split elements within a list
     fold_tb = [i.split(' ')[1] for i in fold_tb]
     fold_tb = [i.replace('(','') for i in fold_tb]
     fold_tb = [i.replace(')\n','') for i in fold_tb]
     fold_tb = [float(i) for i in fold_tb]
-    print(fold_tb)
+    #print(fold_tb)
     
     #old not working code start here
 #    fold_file=open(filename+'fold_table_mfe.txt', 'w')
@@ -1774,7 +1800,7 @@ if 'VFOLD' in args.modules or 'all' in args.modules:
     
     fold_table = pandas.DataFrame({'mfe':fold_tb})
     #fold_table['mfe'] = fold_table['mfe'].map(lambda x: x.lstrip('(').rstrip(')'))
-    print(fold_table)
+    #print(fold_table)
     #fold_table['mfe']=fold_table.apply(lambda row: float(row['mfe']), axis=1)
     fold_table_z = ((fold_table['mfe'] - fold_table['mfe'].mean()) / fold_table['mfe'].std())
     fold_table_wt_z = fold_table_z.iloc[0]
@@ -1782,9 +1808,9 @@ if 'VFOLD' in args.modules or 'all' in args.modules:
     fold_table_z_ls = (fold_table_wt_z_rep-fold_table_z)**2
 
     least_squares = least_squares.add(fold_table_z_ls, axis=0)
-    print("******************** least squares table****************************")
-    print(least_squares)
-    print("******************** least squares table****************************")
+#    print("******************** least squares table****************************")
+#    print(least_squares)
+#    print("******************** least squares table****************************")
 #    final_table=final_table.append(fold_table['mfe'])
     final_table.insert(0, "VFOLD (mfe)", fold_table['mfe'])
         
@@ -1829,44 +1855,44 @@ if 'UFOLD' in args.modules:
 
 if 'DN' in args.modules or 'all' in args.modules:
     print "Calculating DN"
-    dnname = seq_name[1:-1]+'_'+args.random_type+'.dn'
-    dn_file=open(dnname, 'w')
-       
-    dn_file.write("id");
-    for nt1 in nts:
-        for nt2 in nts:
-            dinut = nt1+nt2
-            dn_file.write("\t"+dinut)                
-    dn_file.write("\n") 
-
-    for nuc_rec in SeqIO.parse(filename, "fasta"):
-        nucs = [str(nuc_rec.seq[i:i+1]) for i in range(0,len(nuc_rec.seq),1)]
-        dinucs = [str(nuc_rec.seq[i:i+2]) for i in range(0,len(nuc_rec.seq)-1,1)]  
-        
-        nuc_counts = Counter(nucs)
-        dinuc_counts = Counter(dinucs)
-        seq_len = len(nuc_rec.seq)
-
-        dn_file.write(nuc_rec.id)
-        for nt1 in nts:
-            for nt2 in nts:
-                dinut = nt1+nt2
-                if (dinut in dinuc_counts):
-                    freq = (dinuc_counts[dinut] / (seq_len - 1)) / ( (nuc_counts[nt1] / seq_len) * (nuc_counts[nt2] / seq_len))
-                    #print(nt1 + " " + nt2 + " " + str(freq) + " " + str(dinuc_counts[dinut]) + " " + str(nuc_counts[nt1]) + " " + str(nuc_counts[nt2]) + "\n")
-                    dn_file.write("\t"+str(freq))
-                else:
-                    dn_file.write("\t0")
-        dn_file.write("\n")
-    dn_file.close()
-
-    dnlsname = seq_name[1:- 1]+'_'+args.random_type+'.dnls'
+#    dnname = seq_name[1:-1]+'_'+args.random_type+'.dn'
+#    dn_file=open(dnname, 'w')
+#       
+#    dn_file.write("id");
+#    for nt1 in nts:
+#        for nt2 in nts:
+#            dinut = nt1+nt2
+#            dn_file.write("\t"+dinut)                
+#    dn_file.write("\n") 
+#
+#    for nuc_rec in SeqIO.parse(filename, "fasta"):
+#        nucs = [str(nuc_rec.seq[i:i+1]) for i in range(0,len(nuc_rec.seq),1)]
+#        dinucs = [str(nuc_rec.seq[i:i+2]) for i in range(0,len(nuc_rec.seq)-1,1)]  
+#        
+#        nuc_counts = Counter(nucs)
+#        dinuc_counts = Counter(dinucs)
+#        seq_len = len(nuc_rec.seq)
+#
+#        dn_file.write(nuc_rec.id)
+#        for nt1 in nts:
+#            for nt2 in nts:
+#                dinut = nt1+nt2
+#                if (dinut in dinuc_counts):
+#                    freq = (dinuc_counts[dinut] / (seq_len - 1)) / ( (nuc_counts[nt1] / seq_len) * (nuc_counts[nt2] / seq_len))
+#                    #print(nt1 + " " + nt2 + " " + str(freq) + " " + str(dinuc_counts[dinut]) + " " + str(nuc_counts[nt1]) + " " + str(nuc_counts[nt2]) + "\n")
+#                    dn_file.write("\t"+str(freq))
+#                else:
+#                    dn_file.write("\t0")
+#        dn_file.write("\n")
+#    dn_file.close()
+#
+#    dnlsname = seq_name[1:- 1]+'_'+args.random_type+'.dnls'
     ###################################################################################################
     #added by durbar show
     #added for using emboss compseq 
     #START
     ###################################################################################################
-    print("printing fasta records")
+    #print("printing fasta records")
 #    records = list(SeqIO.parse(filename, "fasta"))
 #    final_dn_df = pandas.DataFrame()
 #    for record in records:
@@ -1907,93 +1933,95 @@ if 'DN' in args.modules or 'all' in args.modules:
     #END
     ###################################################################################################
 #    dn_least_file=open(dnlsname, 'w')
-    dn_table = pandas.read_csv(dnname, sep='	')
-    print("dn_table")
-    print(dn_table)
-    dn_table_AA_wt = dn_table.iloc[0,1]
-    dn_table_AA_wt_rep = np.repeat(dn_table_AA_wt, len(dn_table['AA']))
-    print("dn_table_AA_wt")
-    print(dn_table_AA_wt)
-    print("dn_table_AA_wt_rep")
-    print(dn_table_AA_wt_rep)
-    print("dn_table_AA_wt_rep-dn_table['AA']")
-    print(dn_table_AA_wt_rep-dn_table['AA'])
-    dn_table_AC_wt = dn_table.iloc[0,2]
-    dn_table_AC_wt_rep = np.repeat(dn_table_AC_wt, len(dn_table['AC']))
-    print("dn_table_AA_wt_rep-dn_table['AC']")
-    print(dn_table_AA_wt_rep-dn_table['AC'])
-    dn_table_AG_wt = dn_table.iloc[0,3]
-    dn_table_AG_wt_rep = np.repeat(dn_table_AG_wt, len(dn_table['AG']))
-    dn_table_AT_wt = dn_table.iloc[0,4]
-    dn_table_AT_wt_rep = np.repeat(dn_table_AT_wt, len(dn_table['AT']))
-    dn_table_CA_wt = dn_table.iloc[0,5]
-    dn_table_CA_wt_rep = np.repeat(dn_table_CA_wt, len(dn_table['CA']))
-    dn_table_CC_wt = dn_table.iloc[0,6]
-    dn_table_CC_wt_rep = np.repeat(dn_table_CC_wt, len(dn_table['CC']))
-    dn_table_CG_wt = dn_table.iloc[0,7]
-    dn_table_CG_wt_rep = np.repeat(dn_table_CG_wt, len(dn_table['CG']))
-    dn_table_CT_wt = dn_table.iloc[0,8]
-    dn_table_CT_wt_rep = np.repeat(dn_table_CT_wt, len(dn_table['CT']))
-    dn_table_GA_wt = dn_table.iloc[0,9]
-    dn_table_GA_wt_rep = np.repeat(dn_table_GA_wt, len(dn_table['GA']))
-    dn_table_GC_wt = dn_table.iloc[0,10]
-    dn_table_GC_wt_rep = np.repeat(dn_table_GC_wt, len(dn_table['GC']))
-    dn_table_GG_wt = dn_table.iloc[0,11]
-    dn_table_GG_wt_rep = np.repeat(dn_table_GG_wt, len(dn_table['GG']))
-    dn_table_GT_wt = dn_table.iloc[0,12]
-    dn_table_GT_wt_rep = np.repeat(dn_table_GT_wt, len(dn_table['GT']))
-    dn_table_TA_wt = dn_table.iloc[0,13]
-    dn_table_TA_wt_rep = np.repeat(dn_table_TA_wt, len(dn_table['TA']))
-    dn_table_TC_wt = dn_table.iloc[0,14]
-    dn_table_TC_wt_rep = np.repeat(dn_table_TC_wt, len(dn_table['TC']))
-    dn_table_TG_wt = dn_table.iloc[0,15]
-    dn_table_TG_wt_rep = np.repeat(dn_table_TG_wt, len(dn_table['TG']))
-    dn_table_TT_wt = dn_table.iloc[0,16]
-    dn_table_TT_wt_rep = np.repeat(dn_table_TT_wt, len(dn_table['TT']))
-    
-    dn_table_least = np.sqrt((dn_table_AA_wt_rep-dn_table['AA'])**2+(dn_table_AC_wt_rep-dn_table['AC'])**2+(dn_table_AG_wt_rep-dn_table['AG'])**2+(dn_table_AT_wt_rep-dn_table['AT'])**2+(dn_table_CA_wt_rep-dn_table['CA'])**2+(dn_table_CC_wt_rep-dn_table['CC'])**2+(dn_table_CG_wt_rep-dn_table['CG'])**2+(dn_table_CT_wt_rep-dn_table['CT'])**2+(dn_table_GA_wt_rep-dn_table['GA'])**2+(dn_table_GC_wt_rep-dn_table['GC'])**2+(dn_table_GG_wt_rep-dn_table['GG'])**2+(dn_table_GT_wt_rep-dn_table['GT'])**2+(dn_table_TA_wt_rep-dn_table['TA'])**2+(dn_table_TC_wt_rep-dn_table['TC'])**2+(dn_table_TG_wt_rep-dn_table['TG'])**2+(dn_table_TT_wt_rep-dn_table['TT'])**2)
-    dn_table_least.to_csv(dnlsname, sep="\t")
-#    dn_least_file.write(dn_table_least)
-#    dn_least_file.close()
-    dn_table_least_z =  ((dn_table_least - dn_table_least.mean()) / dn_table_least.std())
-    dn_table_least_z_wt = dn_table_least_z.iloc[0]
-    dn_table_least_z_wt_rep = np.repeat(dn_table_least_z_wt, len(dn_table_least_z))
-    dn_table_least_z_ls = (dn_table_least_z_wt_rep-dn_table_least_z)**2
-    print("dn_table_least")
-    print(dn_table_least)
-    print("dn_table_least_z")
-    print(dn_table_least_z)
-    print("dn_table_least_z_wt")
-    print(dn_table_least_z_wt)
-    print("dn_table_least_z_wt_rep")
-    print(dn_table_least_z_wt_rep)
-    print("******************** dn least table****************************")
-    print(dn_table_least_z_ls)
-    print("******************** dn least table****************************")
+#    dn_table = pandas.read_csv(dnname, sep='	')
+#    print("dn_table")
+#    print(dn_table)
+#    dn_table_AA_wt = dn_table.iloc[0,1]
+#    dn_table_AA_wt_rep = np.repeat(dn_table_AA_wt, len(dn_table['AA']))
+#    print("dn_table_AA_wt")
+#    print(dn_table_AA_wt)
+#    print("dn_table_AA_wt_rep")
+#    print(dn_table_AA_wt_rep)
+#    print("dn_table_AA_wt_rep-dn_table['AA']")
+#    print(dn_table_AA_wt_rep-dn_table['AA'])
+#    dn_table_AC_wt = dn_table.iloc[0,2]
+#    dn_table_AC_wt_rep = np.repeat(dn_table_AC_wt, len(dn_table['AC']))
+#    print("dn_table_AA_wt_rep-dn_table['AC']")
+#    print(dn_table_AA_wt_rep-dn_table['AC'])
+#    dn_table_AG_wt = dn_table.iloc[0,3]
+#    dn_table_AG_wt_rep = np.repeat(dn_table_AG_wt, len(dn_table['AG']))
+#    dn_table_AT_wt = dn_table.iloc[0,4]
+#    dn_table_AT_wt_rep = np.repeat(dn_table_AT_wt, len(dn_table['AT']))
+#    dn_table_CA_wt = dn_table.iloc[0,5]
+#    dn_table_CA_wt_rep = np.repeat(dn_table_CA_wt, len(dn_table['CA']))
+#    dn_table_CC_wt = dn_table.iloc[0,6]
+#    dn_table_CC_wt_rep = np.repeat(dn_table_CC_wt, len(dn_table['CC']))
+#    dn_table_CG_wt = dn_table.iloc[0,7]
+#    dn_table_CG_wt_rep = np.repeat(dn_table_CG_wt, len(dn_table['CG']))
+#    dn_table_CT_wt = dn_table.iloc[0,8]
+#    dn_table_CT_wt_rep = np.repeat(dn_table_CT_wt, len(dn_table['CT']))
+#    dn_table_GA_wt = dn_table.iloc[0,9]
+#    dn_table_GA_wt_rep = np.repeat(dn_table_GA_wt, len(dn_table['GA']))
+#    dn_table_GC_wt = dn_table.iloc[0,10]
+#    dn_table_GC_wt_rep = np.repeat(dn_table_GC_wt, len(dn_table['GC']))
+#    dn_table_GG_wt = dn_table.iloc[0,11]
+#    dn_table_GG_wt_rep = np.repeat(dn_table_GG_wt, len(dn_table['GG']))
+#    dn_table_GT_wt = dn_table.iloc[0,12]
+#    dn_table_GT_wt_rep = np.repeat(dn_table_GT_wt, len(dn_table['GT']))
+#    dn_table_TA_wt = dn_table.iloc[0,13]
+#    dn_table_TA_wt_rep = np.repeat(dn_table_TA_wt, len(dn_table['TA']))
+#    dn_table_TC_wt = dn_table.iloc[0,14]
+#    dn_table_TC_wt_rep = np.repeat(dn_table_TC_wt, len(dn_table['TC']))
+#    dn_table_TG_wt = dn_table.iloc[0,15]
+#    dn_table_TG_wt_rep = np.repeat(dn_table_TG_wt, len(dn_table['TG']))
+#    dn_table_TT_wt = dn_table.iloc[0,16]
+#    dn_table_TT_wt_rep = np.repeat(dn_table_TT_wt, len(dn_table['TT']))
+#    
+#    dn_table_least = np.sqrt((dn_table_AA_wt_rep-dn_table['AA'])**2+(dn_table_AC_wt_rep-dn_table['AC'])**2+(dn_table_AG_wt_rep-dn_table['AG'])**2+(dn_table_AT_wt_rep-dn_table['AT'])**2+(dn_table_CA_wt_rep-dn_table['CA'])**2+(dn_table_CC_wt_rep-dn_table['CC'])**2+(dn_table_CG_wt_rep-dn_table['CG'])**2+(dn_table_CT_wt_rep-dn_table['CT'])**2+(dn_table_GA_wt_rep-dn_table['GA'])**2+(dn_table_GC_wt_rep-dn_table['GC'])**2+(dn_table_GG_wt_rep-dn_table['GG'])**2+(dn_table_GT_wt_rep-dn_table['GT'])**2+(dn_table_TA_wt_rep-dn_table['TA'])**2+(dn_table_TC_wt_rep-dn_table['TC'])**2+(dn_table_TG_wt_rep-dn_table['TG'])**2+(dn_table_TT_wt_rep-dn_table['TT'])**2)
+#    dn_table_least.to_csv(dnlsname, sep="\t")
+##    dn_least_file.write(dn_table_least)
+##    dn_least_file.close()
+#    dn_table_least_z =  ((dn_table_least - dn_table_least.mean()) / dn_table_least.std())
+#    dn_table_least_z_wt = dn_table_least_z.iloc[0]
+#    dn_table_least_z_wt_rep = np.repeat(dn_table_least_z_wt, len(dn_table_least_z))
+#    dn_table_least_z_ls = (dn_table_least_z_wt_rep-dn_table_least_z)**2
+#    print("dn_table_least")
+#    print(dn_table_least)
+#    print("dn_table_least_z")
+#    print(dn_table_least_z)
+#    print("dn_table_least_z_wt")
+#    print(dn_table_least_z_wt)
+#    print("dn_table_least_z_wt_rep")
+#    print(dn_table_least_z_wt_rep)
+    dn_table_least_z_ls = pandas.read_csv("./dinucleotide_frequency_z_squared.csv", sep = ",")
+    dn_table_least_z_ls = dn_table_least_z_ls["dinucleotide_frequency_z_squared_score"]
+#    print("******************** dn least table****************************")
+#    print(dn_table_least_z_ls)
+#    print("******************** dn least table****************************")
     least_squares = least_squares.add(dn_table_least_z_ls, axis=0)
-    print("******************** least squares table****************************")
-    print(least_squares)
-    print("******************** least squares table****************************")
-    u_cols = ['Replication', 'DN_least_square']
-    dn_table_ls = pandas.read_csv(dnlsname, sep='	', names=u_cols)
-#    final_table=final_table.append(dn_table_ls['DN_least_square'])
-    final_table.insert(0, "DN_least_square", dn_table_ls['DN_least_square'])
-    final_table.insert(1, "DN (TT)", dn_table['TT'])
-    final_table.insert(1, "DN (TG)", dn_table['TG'])
-    final_table.insert(1, "DN (TC)", dn_table['TC'])
-    final_table.insert(1, "DN (TA)", dn_table['TA'])
-    final_table.insert(1, "DN (GT)", dn_table['GT'])
-    final_table.insert(1, "DN (GG)", dn_table['GG'])
-    final_table.insert(1, "DN (GC)", dn_table['GC'])
-    final_table.insert(1, "DN (GA)", dn_table['GA'])
-    final_table.insert(1, "DN (CT)", dn_table['CT'])
-    final_table.insert(1, "DN (CG)", dn_table['CG'])
-    final_table.insert(1, "DN (CC)", dn_table['CC'])
-    final_table.insert(1, "DN (CA)", dn_table['CA'])
-    final_table.insert(1, "DN (AT)", dn_table['AT'])
-    final_table.insert(1, "DN (AG)", dn_table['AG'])
-    final_table.insert(1, "DN (AC)", dn_table['AC'])
-    final_table.insert(1, "DN (AA)", dn_table['AA'])
+#    print("******************** least squares table****************************")
+#    print(least_squares)
+#    print("******************** least squares table****************************")
+#    u_cols = ['Replication', 'DN_least_square']
+#    dn_table_ls = pandas.read_csv(dnlsname, sep='	', names=u_cols)
+##    final_table=final_table.append(dn_table_ls['DN_least_square'])
+#    final_table.insert(0, "DN_least_square", dn_table_ls['DN_least_square'])
+#    final_table.insert(1, "DN (TT)", dn_table['TT'])
+#    final_table.insert(1, "DN (TG)", dn_table['TG'])
+#    final_table.insert(1, "DN (TC)", dn_table['TC'])
+#    final_table.insert(1, "DN (TA)", dn_table['TA'])
+#    final_table.insert(1, "DN (GT)", dn_table['GT'])
+#    final_table.insert(1, "DN (GG)", dn_table['GG'])
+#    final_table.insert(1, "DN (GC)", dn_table['GC'])
+#    final_table.insert(1, "DN (GA)", dn_table['GA'])
+#    final_table.insert(1, "DN (CT)", dn_table['CT'])
+#    final_table.insert(1, "DN (CG)", dn_table['CG'])
+#    final_table.insert(1, "DN (CC)", dn_table['CC'])
+#    final_table.insert(1, "DN (CA)", dn_table['CA'])
+#    final_table.insert(1, "DN (AT)", dn_table['AT'])
+#    final_table.insert(1, "DN (AG)", dn_table['AG'])
+#    final_table.insert(1, "DN (AC)", dn_table['AC'])
+#    final_table.insert(1, "DN (AA)", dn_table['AA'])
     
 
     if args.graphics:
@@ -2032,73 +2060,83 @@ if 'CPB' in args.modules or 'all' in args.modules:
     #SeqIO.write(proteins, filename+"_prot", "fasta")
     
     print "Calculating CPB"
-    cpbname = seq_name[1:-1]+'_'+args.random_type+'.cpb'
-    cpb_file=open(cpbname,'w')
-    
-    #Human CPS from Coleman et al 2008, pmid: 18583614
-    cps_human = pandas.read_csv("Coleman_CPS.csv", sep=';')
-    #Delete column 
-    cps_human = cps_human.drop('Aapair', 1)
-    cps_human = cps_human.drop('Expected', 1)
-    cps_human = cps_human.drop('Observed', 1)
-    cps_human = cps_human.drop('Observed/Expected', 1)
-    cps_human = cps_human.sort(['CodonPair'], ascending=[True])
-
-    
-    for nuc_rec in SeqIO.parse(filename, "fasta"):
-        prot_rec = make_protein_record(nuc_rec)
-        codons = [str(nuc_rec.seq[i:i+3]) for i in range(0,len(nuc_rec.seq)-3,3)]
-        dicodons = [str(nuc_rec.seq[i:i+6]) for i in range(0,len(nuc_rec.seq)-3,3)]
-        aas = [str(prot_rec.seq[i:i+1]) for i in range(0,len(prot_rec.seq),1)]
-        diaas = [str(prot_rec.seq[i:i+2]) for i in range(0,len(prot_rec.seq)-1,1)]
-
-        codon_counts = Counter(codons)
-        dicodon_counts = Counter(dicodons)
-        aa_counts = Counter(aas)
-        diaa_counts = Counter(diaas)
-        
-        cps = []
-        for cp in dicodons:
-            cod1 = cp[:3]
-            cod2 = cp[3:]
-            if cod1 in ['TAG', 'TGA', 'TAA'] or cod2 in ['TAG', 'TGA', 'TAA']:
-                continue #skip stop codons
-            aa1 = tt[cod1].split('|')[0]
-            aa2 = tt[cod2].split('|')[0]
-            ap = aa1+aa2
-            #score = np.log(dicodons.count(cp) / ( ((codons.count(cod1) * codons.count(cod2)) / (aas.count(aa1) * aas.count(aa2))) * diaas.count(ap)))
-            #score = np.log(dicodon_counts[cp] / ( ((codon_counts[cod1] * codon_counts[cod2]) / (aa_counts[aa1] * aa_counts[aa2])) * diaa_counts[ap]))
-            numerator_cps = dicodon_counts[cp]
-            denominator_cps = ((codon_counts[cod1] * codon_counts[cod2]) / (aa_counts[aa1] * aa_counts[aa2])) * diaa_counts[ap]
-            with np.errstate(divide='ignore', invalid='ignore'):
-                div_cps = np.true_divide(numerator_cps,denominator_cps)
-                score = np.log(div_cps)
-            cps.append(score)
-            dicodon_df = pandas.DataFrame.from_dict(dicodon_counts, orient='index').reset_index()
-            dicodon_df = dicodon_df.sort(['index'], ascending=[True])
-            dicodon_df.columns = ['CodonPair', 'Obs']
-            cps_tb_final = pandas.merge(cps_human, dicodon_df, on='CodonPair', how='inner')
-            cps_tb_final['CPS'] = cps_tb_final['CPS'].replace({',':'.'}, regex=True)
-            cps_tb_final['CPS'] = cps_tb_final['CPS'].astype(float)
-            cps_tb_final['result'] = cps_tb_final.CPS * cps_tb_final.Obs
-        cpb = sum(cps_tb_final['result'])/sum(cps_tb_final['Obs'])
-        print str(cpb)
-        cpb_file.write(str(cpb)+"\n")
-    cpb_file.close()
-    
-    u_cols = ['cpb']
-    cpb_table = pandas.read_csv(cpbname, sep=' ', names=u_cols)
-    cpb_table_z =  ((cpb_table['cpb'] - cpb_table['cpb'].mean()) / cpb_table['cpb'].std())
-    cpb_table_wt_z = cpb_table_z.iloc[0]
-    cpb_table_wt_z_rep = np.repeat(cpb_table_wt_z, len(cpb_table_z))
-    cpb_table_z_ls = (cpb_table_wt_z_rep-cpb_table_z)**2
-    
-    least_squares = least_squares.add(cpb_table_z_ls, axis=0)
+#    cpbname = seq_name[1:-1]+'_'+args.random_type+'.cpb'
+#    cpb_file=open(cpbname,'w')
+#    
+#    #Human CPS from Coleman et al 2008, pmid: 18583614
+#    cps_human = pandas.read_csv("Coleman_CPS.csv", sep=';')
+#    #Delete column 
+#    cps_human = cps_human.drop('Aapair', 1)
+#    cps_human = cps_human.drop('Expected', 1)
+#    cps_human = cps_human.drop('Observed', 1)
+#    cps_human = cps_human.drop('Observed/Expected', 1)
+#    cps_human = cps_human.sort(['CodonPair'], ascending=[True])
+#
+#    print(cps_human)
+#    for nuc_rec in SeqIO.parse(filename, "fasta"):
+#        prot_rec = make_protein_record(nuc_rec)
+#        codons = [str(nuc_rec.seq[i:i+3]) for i in range(0,len(nuc_rec.seq)-3,3)]
+#        dicodons = [str(nuc_rec.seq[i:i+6]) for i in range(0,len(nuc_rec.seq)-3,3)]
+#        aas = [str(prot_rec.seq[i:i+1]) for i in range(0,len(prot_rec.seq),1)]
+#        diaas = [str(prot_rec.seq[i:i+2]) for i in range(0,len(prot_rec.seq)-1,1)]
+#
+#        codon_counts = Counter(codons)
+#        dicodon_counts = Counter(dicodons)
+#        aa_counts = Counter(aas)
+#        diaa_counts = Counter(diaas)
+#        
+#        cps = []
+#        for cp in dicodons:
+#            cod1 = cp[:3]
+#            cod2 = cp[3:]
+#            if cod1 in ['TAG', 'TGA', 'TAA'] or cod2 in ['TAG', 'TGA', 'TAA']:
+#                continue #skip stop codons
+#            aa1 = tt[cod1].split('|')[0]
+#            aa2 = tt[cod2].split('|')[0]
+#            ap = aa1+aa2
+#            #score = np.log(dicodons.count(cp) / ( ((codons.count(cod1) * codons.count(cod2)) / (aas.count(aa1) * aas.count(aa2))) * diaas.count(ap)))
+#            #score = np.log(dicodon_counts[cp] / ( ((codon_counts[cod1] * codon_counts[cod2]) / (aa_counts[aa1] * aa_counts[aa2])) * diaa_counts[ap]))
+#            numerator_cps = dicodon_counts[cp]
+#            denominator_cps = ((codon_counts[cod1] * codon_counts[cod2]) / (aa_counts[aa1] * aa_counts[aa2])) * diaa_counts[ap]
+#            with np.errstate(divide='ignore', invalid='ignore'):
+#                div_cps = np.true_divide(numerator_cps,denominator_cps)
+#                score = np.log(div_cps)
+#            cps.append(score)
+#            dicodon_df = pandas.DataFrame.from_dict(dicodon_counts, orient='index').reset_index()
+#            dicodon_df = dicodon_df.sort(['index'], ascending=[True])
+#            dicodon_df.columns = ['CodonPair', 'Obs']
+#            cps_tb_final = pandas.merge(cps_human, dicodon_df, on='CodonPair', how='inner')
+#            cps_tb_final['CPS'] = cps_tb_final['CPS'].replace({',':'.'}, regex=True)
+#            cps_tb_final['CPS'] = cps_tb_final['CPS'].astype(float)
+#            cps_tb_final['result'] = cps_tb_final.CPS * cps_tb_final.Obs
+#        cpb = sum(cps_tb_final['result'])/sum(cps_tb_final['Obs'])
+#        #print str(cpb)
+#        cpb_file.write(str(cpb)+"\n")
+#    cpb_file.close()
+#    
+#    u_cols = ['cpb']
+#    cpb_table = pandas.read_csv(cpbname, sep=' ', names=u_cols)
+#    cpb_table_z =  ((cpb_table['cpb'] - cpb_table['cpb'].mean()) / cpb_table['cpb'].std())
+#    cpb_table_wt_z = cpb_table_z.iloc[0]
+#    cpb_table_wt_z_rep = np.repeat(cpb_table_wt_z, len(cpb_table_z))
+#    cpb_table_z_ls = (cpb_table_wt_z_rep-cpb_table_z)**2
+#    
+    ##########################################################
+    #added by durbar  START
+    ##########################################################
+    call(["Rscript","--vanilla","./codon_pair_bias_calculation.R",filename])
+    cpb_table_z_ls = pandas.read_csv("./cpb_z_squared.csv", sep = ",")
+    ##########################################################
+    #added by durbar  END
+    ##########################################################
+    print(cpb_table_z_ls)
+    print(least_squares)
+    least_squares = least_squares.add(cpb_table_z_ls['cpb'], axis=0)
     print("******************** least squares table****************************")
     print(least_squares)
     print("******************** least squares table****************************")
 #    final_table=final_table.append(cpb_table['cpb'])
-    final_table.insert(0, "CPB", cpb_table['cpb'])
+    #final_table.insert(0, "CPB", cpb_table['cpb'])
         
     if args.graphics:
         cpb_graphname = cpbname +'.pdf'
@@ -2162,7 +2200,9 @@ if args.graphics:
     #final_graph = ggplot(new_table, aes('Distance', 'Nucleotide_difference'))+geom_point()+labs("Least Square Distance","Hamming Distance (nt)")+ggtitle(seq_name[1:-1]+'_'+args.random_type)
     #ggsave(final_graph, final_graphname)
 
+end = time.time()
 
+print(end-start)
 
 
 
